@@ -1,0 +1,36 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: restaurant_finder
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U user -d restaurant_finder']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - '3000:3000'
+    environment:
+      PORT: 3000
+      HOST: 0.0.0.0
+      JWT_SECRET: change-me-in-production
+      JWT_EXPIRES_IN: 10m
+      DATABASE_URL: postgresql://user:password@postgres:5432/restaurant_finder
+      LOCATIONS_FILE: data/locations.json
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres_data:

@@ -1,0 +1,147 @@
+{
+  "info": {
+    "name": "Restaurant Finder API",
+    "description": "Collection for the Restaurant Finder challenge API. Run \"Auth - Issue Token\" first; it stores the JWT in the {{token}} collection variable, which every other request uses via Bearer auth.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "locationId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Auth - Issue Token",
+      "request": {
+        "auth": {
+          "type": "noauth"
+        },
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"role\": \"admin\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/auth/token",
+          "host": ["{{baseUrl}}"],
+          "path": ["auth", "token"]
+        },
+        "description": "Issues a JWT. Body is optional; `role` defaults to a standard role if omitted."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('status is 200', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "var data = pm.response.json();",
+              "if (data && data.token) {",
+              "  pm.collectionVariables.set('token', data.token);",
+              "  console.log('Saved token to {{token}}');",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Locations - Search",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/locations/search?x=50&y=50&limit=20&offset=0",
+          "host": ["{{baseUrl}}"],
+          "path": ["locations", "search"],
+          "query": [
+            { "key": "x", "value": "50" },
+            { "key": "y", "value": "50" },
+            { "key": "limit", "value": "20", "description": "Optional. Default 20." },
+            { "key": "offset", "value": "0", "description": "Optional. Default 0." }
+          ]
+        },
+        "description": "Returns visible locations for the given user coordinates, sorted by distance. Supports pagination via limit (default 20) and offset (default 0). Requires Bearer auth."
+      }
+    },
+    {
+      "name": "Locations - Get By Id",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/locations/{{locationId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["locations", "{{locationId}}"]
+        },
+        "description": "Fetches a single location by UUID. Set the {{locationId}} collection variable first. Requires Bearer auth."
+      }
+    },
+    {
+      "name": "Locations - Upsert",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Bonial Bistro\",\n  \"type\": \"restaurant\",\n  \"opening-hours\": \"Mon-Fri 09:00-22:00\",\n  \"image\": \"https://example.com/bistro.png\",\n  \"coordinates\": \"x=50,y=50\",\n  \"radius\": 30\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/locations/{{locationId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["locations", "{{locationId}}"]
+        },
+        "description": "Creates or updates a location at the given UUID. Coordinates use the \"x=<int>,y=<int>\" format. Requires Bearer auth."
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (!pm.collectionVariables.get('locationId')) {",
+              "  pm.collectionVariables.set('locationId', pm.variables.replaceIn('{{$guid}}'));",
+              "  console.log('Generated locationId:', pm.collectionVariables.get('locationId'));",
+              "}"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
