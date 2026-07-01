@@ -19,10 +19,6 @@ CREATE INDEX IF NOT EXISTS locations_y_idx ON locations (y);
 
 -- GiST spatial index (might be useful in the future depending on the data size and queries):
 --
--- searchVisible filters on x/y directly, not on a geom column, so a GiST
--- index on geom was never used by the planner (writes paid index cost, reads still seq-scanned).
--- B-tree on x and y matches the current query without extra columns.
---
 -- How to add later (e.g. PostGIS or native point at scale):
 --   1. ALTER TABLE locations ADD COLUMN geom point GENERATED ALWAYS AS (point(x, y)) STORED;
 --   2. CREATE INDEX locations_geom_gist_idx ON locations USING GIST (geom);
