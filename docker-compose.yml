@@ -27,6 +27,9 @@ services:
       JWT_SECRET: change-me-in-production
       JWT_EXPIRES_IN: 10m
       DATABASE_URL: postgresql://user:password@postgres:5432/restaurant_finder
+      DB_CONNECTION_TIMEOUT_MS: 10000
+      DB_QUERY_TIMEOUT_MS: 10000
+      DB_IDLE_TIMEOUT_MS: 30000
       LOCATIONS_FILE: data/locations.json
     depends_on:
       postgres:

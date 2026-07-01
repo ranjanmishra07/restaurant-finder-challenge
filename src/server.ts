@@ -6,6 +6,7 @@ import type pg from 'pg';
 import { LocationController } from './controllers/location.controller.js';
 import { LocationRepository } from './repositories/location.repository.js';
 import { LocationService } from './services/location.service.js';
+import { registerErrorHandler } from './middleware/error-handler.middleware.js';
 import { registerRateLimit } from './middleware/rate-limit.middleware.js';
 import { registerRoutes } from './routes/index.js';
 import { registerSchemas } from './schemas/index.js';
@@ -19,9 +20,19 @@ export async function createLocationController(pool: pg.Pool): Promise<LocationC
 }
 
 export async function buildApp(locationController: LocationController) {
-  const app = Fastify({ loggerInstance: logger as FastifyBaseLogger });
+  const app = Fastify({
+    loggerInstance: logger as FastifyBaseLogger,
+    ajv: {
+      customOptions: {
+        removeAdditional: false,
+        coerceTypes: false,
+        allErrors: true,
+      },
+    },
+  });
 
   registerSchemas(app);
+  registerErrorHandler(app);
 
   await app.register(swagger, {
     openapi: {

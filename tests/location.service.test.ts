@@ -3,6 +3,8 @@ import { toLocationSearchItem } from '../src/models/location.mapper.js';
 import type { Location, LocationSearchRow } from '../src/models/location.model.js';
 import type { LocationRepository } from '../src/repositories/location.repository.js';
 import { LocationService } from '../src/services/location.service.js';
+import { API_ERROR_MESSAGES } from '../src/utils/api-error-messages.js';
+import { MockLocationRepository } from './helpers/mock-location.repository.js';
 
 function createLocation(overrides: Partial<Location> = {}): Location {
   return {
@@ -90,12 +92,71 @@ describe('LocationService', () => {
     });
   });
 
-  it('rejects upsert when coordinates are invalid', async () => {
+  it('rejects search when x exceeds safe coordinate max', async () => {
+    const repository = {
+      searchVisible: vi.fn().mockResolvedValue([]),
+    } as unknown as LocationRepository;
+
+    const service = new LocationService(repository);
+    await expect(service.searchLocations(2_147_483_648, 3)).rejects.toMatchObject({
+      name: 'AppError',
+      statusCode: 400,
+    });
+    expect(repository.searchVisible).not.toHaveBeenCalled();
+  });
+
+  it('rejects search when x is pg integer max but unsafe for bbox math', async () => {
+    const repository = {
+      searchVisible: vi.fn().mockResolvedValue([]),
+    } as unknown as LocationRepository;
+
+    const service = new LocationService(repository);
+    await expect(service.searchLocations(2_147_483_647, 3)).rejects.toMatchObject({
+      name: 'AppError',
+      statusCode: 400,
+    });
+    expect(repository.searchVisible).not.toHaveBeenCalled();
+  });
+
+  it('allows search at coordinate max safe for bbox math', async () => {
+    const repository = {
+      searchVisible: vi.fn().mockResolvedValue([]),
+    } as unknown as LocationRepository;
+
+    const service = new LocationService(repository);
+    await expect(service.searchLocations(2_147_482_647, 0)).resolves.toMatchObject({
+      userLocation: 'x=2147482647,y=0',
+      locations: [],
+    });
+    expect(repository.searchVisible).toHaveBeenCalledWith(2_147_482_647, 0, 20, 0);
+  });
+
+  it('rejects upsert when coordinates exceed safe coordinate max', async () => {
     const repository = {
       upsert: vi.fn(),
     } as unknown as LocationRepository;
 
     const service = new LocationService(repository);
+    await expect(
+      service.upsert({
+        id: '51e1545c-8b65-4d83-82f9-7fcad4a23111',
+        name: 'Bad Coords',
+        type: 'Restaurant',
+        openingHours: '10:00AM-11:00PM',
+        image: 'https://tinyurl.com',
+        coordinates: 'x=2147483648,y=3',
+        radius: 1,
+      }),
+    ).rejects.toMatchObject({
+      name: 'AppError',
+      statusCode: 400,
+    });
+    expect(repository.upsert).not.toHaveBeenCalled();
+  });
+
+  it('rejects upsert when coordinates are invalid', async () => {
+    const repository = new MockLocationRepository([]);
+    const service = new LocationService(repository as unknown as LocationRepository);
 
     await expect(
       service.upsert({
@@ -107,9 +168,11 @@ describe('LocationService', () => {
         coordinates: 'invalid',
         radius: 1,
       }),
-    ).rejects.toThrow(/Invalid coordinates/);
-
-    expect(repository.upsert).not.toHaveBeenCalled();
+    ).rejects.toMatchObject({
+      name: 'AppError',
+      statusCode: 400,
+      message: API_ERROR_MESSAGES.INVALID_COORDINATES,
+    });
   });
 
   it('upserts and returns location detail', async () => {

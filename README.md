@@ -94,6 +94,18 @@ docker compose up --build
 
 Starts Postgres and the API, runs migrations and seed on startup. API available at `http://localhost:3000`. Environment variables are set in `docker-compose.yml` — no `.env` file needed for this path.
 
+### Test the API (Postman, docs, examples)
+
+Once the server is running at `http://localhost:3000`:
+
+1. **Postman** — Import `postman/restaurant-finder.postman_collection.json` (Postman → **Import** → **Upload Files** or drag the file in). Run **Auth - Issue Token** first; it saves the JWT to the `{{token}}` collection variable used by the other requests. Then send **Locations - Search**, **Get Location**, and **Upsert Location** as needed. Change `baseUrl` in collection variables if your server is not on port 3000.
+
+2. **Swagger UI** — Open [http://localhost:3000/docs](http://localhost:3000/docs) in a browser to browse and try endpoints interactively.
+
+3. **Request/response examples** — See [api-req-res-readme.md](./api-req-res-readme.md) for curl-based request/response pairs covering success and error cases.
+
+4. **Validation errors** — See [error-validation-readme.md](./error-validation-readme.md) for the client-safe error message catalog and validation test results.
+
 ## API Endpoints
 
 | Method | Path | Description |
@@ -138,6 +150,9 @@ Integration tests need a `.env` with your `DATABASE_URL` and migrations applied 
 | `HOST` | `0.0.0.0` | Server host |
 | `JWT_SECRET` | — | Secret for JWT signing |
 | `DATABASE_URL` | — | Your PostgreSQL connection string in `.env` (user, password, host, port, database) — required for manual setup and integration tests |
+| `DB_CONNECTION_TIMEOUT_MS` | `5000` | Fail fast if a new Postgres connection cannot be opened in time |
+| `DB_QUERY_TIMEOUT_MS` | `10000` | Abort queries that run longer than this (returns 500 via error handler) |
+| `DB_IDLE_TIMEOUT_MS` | `30000` | Close unused pooled connections after this idle period |
 | `LOCATIONS_FILE` | `data/locations.json` | Seed data file |
 | `RATE_LIMIT_MAX` | `100` | Max requests per window for `PUT /locations/:id` |
 | `RATE_LIMIT_TIME_WINDOW` | `1 minute` | Rate limit window for `PUT /locations/:id` |

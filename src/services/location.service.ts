@@ -10,7 +10,7 @@ import {
 } from '../models/location.mapper.js';
 import type { LocationRepository } from '../repositories/location.repository.js';
 import { env } from '../config/env.js';
-import { formatCoordinates, parseCoordinates } from '../utils/coordinates.js';
+import { assertCoordinateInRange, formatCoordinates, parseCoordinates } from '../utils/coordinates.js';
 
 export class LocationService {
   constructor(private locationRepo: LocationRepository) {}
@@ -23,6 +23,9 @@ export class LocationService {
       offset: 0,
     },
   ): Promise<LocationSearchResult> {
+    assertCoordinateInRange(x);
+    assertCoordinateInRange(y);
+
     const rows = await this.locationRepo.searchVisible(
       x,
       y,
@@ -45,7 +48,10 @@ export class LocationService {
   }
 
   async upsert(input: LocationUpsertInput): Promise<LocationDetail> {
-    parseCoordinates(input.coordinates);
+    const { x, y } = parseCoordinates(input.coordinates);
+    assertCoordinateInRange(x);
+    assertCoordinateInRange(y);
+
     const saved = await this.locationRepo.upsert(input);
     return toLocationDetail(saved);
   }

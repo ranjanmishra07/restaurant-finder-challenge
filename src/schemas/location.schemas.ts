@@ -1,4 +1,10 @@
 import { ApiField } from '../models/api-fields.js';
+import {
+  UPSERT_IMAGE_MAX_LENGTH,
+  UPSERT_NAME_MAX_LENGTH,
+  UPSERT_OPENING_HOURS_MAX_LENGTH,
+  UPSERT_TYPE_MAX_LENGTH,
+} from './validation-limits.js';
 
 export const locationSearchItemSchema = {
   $id: 'LocationSearchItem',
@@ -19,10 +25,10 @@ export const locationSearchQuerySchema = {
   required: ['x', 'y'],
   additionalProperties: false,
   properties: {
-    x: { $ref: 'NonNegativeIntegerString#' },
-    y: { $ref: 'NonNegativeIntegerString#' },
-    limit: { $ref: 'PositiveIntegerString#' },
-    offset: { $ref: 'NonNegativeIntegerString#' },
+    x: { $ref: 'BoundedNonNegativeIntegerString#' },
+    y: { $ref: 'BoundedNonNegativeIntegerString#' },
+    limit: { $ref: 'SearchLimitString#' },
+    offset: { $ref: 'SearchOffsetString#' },
   },
 } as const;
 
@@ -71,12 +77,21 @@ export const locationUpsertBodySchema = {
   required: ['name', 'type', ApiField.OPENING_HOURS, 'image', 'coordinates', 'radius'],
   additionalProperties: false,
   properties: {
-    name: { type: 'string', minLength: 1 },
-    type: { type: 'string', minLength: 1 },
-    [ApiField.OPENING_HOURS]: { type: 'string', minLength: 1 },
-    image: { type: 'string', format: 'uri' },
+    name: { type: 'string', minLength: 1, maxLength: UPSERT_NAME_MAX_LENGTH },
+    type: { type: 'string', minLength: 1, maxLength: UPSERT_TYPE_MAX_LENGTH },
+    [ApiField.OPENING_HOURS]: {
+      type: 'string',
+      minLength: 1,
+      maxLength: UPSERT_OPENING_HOURS_MAX_LENGTH,
+    },
+    image: {
+      type: 'string',
+      format: 'uri',
+      maxLength: UPSERT_IMAGE_MAX_LENGTH,
+      pattern: '^https://',
+    },
     coordinates: { $ref: 'CoordinatesString#' },
-    radius: { $ref: 'PositiveInteger#' },
+    radius: { $ref: 'UpsertRadius#' },
   },
 } as const;
 

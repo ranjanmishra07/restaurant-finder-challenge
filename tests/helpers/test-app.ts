@@ -35,6 +35,12 @@ export async function buildTestApp() {
   return buildApp(locationController);
 }
 
+export async function buildTestAppWithRepository(repository: LocationRepository) {
+  const service = new LocationService(repository);
+  const controller = new LocationController(service);
+  return buildApp(controller);
+}
+
 export async function getAuthToken(app: FastifyInstance, role = 'user'): Promise<string> {
   const response = await app.inject({
     method: 'POST',

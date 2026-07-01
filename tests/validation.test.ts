@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ApiField } from '../src/models/api-fields.js';
+import { API_ERROR_MESSAGES } from '../src/utils/api-error-messages.js';
 import { buildTestApp, injectWithAuth } from './helpers/test-app.js';
 
 const validLocationId = '51e1545c-8b65-4d83-82f9-7fcad4a23111';
@@ -24,6 +25,9 @@ describe('API validation', () => {
     });
 
     expect(response.statusCode).toBe(400);
+    expect(response.json()).toEqual({
+      message: API_ERROR_MESSAGES.REQUIRED_FIELD_MISSING,
+    });
     await app.close();
   });
 
@@ -133,6 +137,149 @@ describe('API validation', () => {
     });
 
     expect(response.statusCode).toBe(200);
+    await app.close();
+  });
+
+  it('rejects search when limit exceeds max', async () => {
+    const app = await buildTestApp();
+    await app.ready();
+
+    const response = await injectWithAuth(app, {
+      method: 'GET',
+      url: '/locations/search?x=3&y=3&limit=101',
+    });
+
+    expect(response.statusCode).toBe(400);
+    await app.close();
+  });
+
+  it('rejects search when offset exceeds max', async () => {
+    const app = await buildTestApp();
+    await app.ready();
+
+    const response = await injectWithAuth(app, {
+      method: 'GET',
+      url: '/locations/search?x=3&y=3&offset=1001',
+    });
+
+    expect(response.statusCode).toBe(400);
+    await app.close();
+  });
+
+  it('rejects search when coordinate exceeds safe coordinate max', async () => {
+    const app = await buildTestApp();
+    await app.ready();
+
+    const response = await injectWithAuth(app, {
+      method: 'GET',
+      url: '/locations/search?x=2147483647&y=3',
+    });
+
+    expect(response.statusCode).toBe(400);
+    expect(response.json()).toEqual({
+      message: API_ERROR_MESSAGES.COORDINATE_EXCEEDS_MAX,
+    });
+    await app.close();
+  });
+
+  it('rejects search when coordinate exceeds max digits', async () => {
+    const app = await buildTestApp();
+    await app.ready();
+
+    const response = await injectWithAuth(app, {
+      method: 'GET',
+      url: '/locations/search?x=12345678901&y=3',
+    });
+
+    expect(response.statusCode).toBe(400);
+    expect(response.json()).toEqual({
+      message: API_ERROR_MESSAGES.VALUE_EXCEEDS_MAX_LENGTH,
+    });
+    await app.close();
+  });
+
+  it('rejects upsert with extra fields', async () => {
+    const app = await buildTestApp();
+    await app.ready();
+
+    const response = await injectWithAuth(app, {
+      method: 'PUT',
+      url: `/locations/${validLocationId}`,
+      payload: { ...validUpsertBody, extra: 'field' },
+    });
+
+    expect(response.statusCode).toBe(400);
+    expect(response.json()).toEqual({
+      message: API_ERROR_MESSAGES.UNEXPECTED_FIELD,
+    });
+    await app.close();
+  });
+
+  it('rejects upsert when image is not https', async () => {
+    const app = await buildTestApp();
+    await app.ready();
+
+    const response = await injectWithAuth(app, {
+      method: 'PUT',
+      url: `/locations/${validLocationId}`,
+      payload: { ...validUpsertBody, image: 'http://example.com/image.png' },
+    });
+
+    expect(response.statusCode).toBe(400);
+    expect(response.json()).toEqual({
+      message: API_ERROR_MESSAGES.INVALID_FORMAT,
+    });
+    await app.close();
+  });
+
+  it('rejects upsert when name exceeds max length', async () => {
+    const app = await buildTestApp();
+    await app.ready();
+
+    const response = await injectWithAuth(app, {
+      method: 'PUT',
+      url: `/locations/${validLocationId}`,
+      payload: { ...validUpsertBody, name: 'a'.repeat(256) },
+    });
+
+    expect(response.statusCode).toBe(400);
+    expect(response.json()).toEqual({
+      message: API_ERROR_MESSAGES.VALUE_EXCEEDS_MAX_LENGTH,
+    });
+    await app.close();
+  });
+
+  it('rejects upsert when coordinates exceed safe coordinate max', async () => {
+    const app = await buildTestApp();
+    await app.ready();
+
+    const response = await injectWithAuth(app, {
+      method: 'PUT',
+      url: `/locations/${validLocationId}`,
+      payload: { ...validUpsertBody, coordinates: 'x=2147483648,y=3' },
+    });
+
+    expect(response.statusCode).toBe(400);
+    expect(response.json()).toEqual({
+      message: API_ERROR_MESSAGES.COORDINATE_EXCEEDS_MAX,
+    });
+    await app.close();
+  });
+
+  it('rejects upsert when radius exceeds max', async () => {
+    const app = await buildTestApp();
+    await app.ready();
+
+    const response = await injectWithAuth(app, {
+      method: 'PUT',
+      url: `/locations/${validLocationId}`,
+      payload: { ...validUpsertBody, radius: 1001 },
+    });
+
+    expect(response.statusCode).toBe(400);
+    expect(response.json()).toEqual({
+      message: API_ERROR_MESSAGES.VALUE_EXCEEDS_MAX,
+    });
     await app.close();
   });
 });

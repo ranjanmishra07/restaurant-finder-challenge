@@ -41,6 +41,8 @@ export class LocationRepository {
    * Find restaurants that can "see" the user at (x, y).
    * A restaurant counts if the user is within its radius (distance <= radius).
    * We first skip far-away rows using maxRadius, then apply the exact check and sort by distance.
+   * For correctness maxRadius is not used in the query, but it is used to prune the search space.
+   * For Correctness maxRadius should be always correct and  updated from thedatabase.
    */
   async searchVisible(
     x: number,

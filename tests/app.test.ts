@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { buildTestApp, injectWithAuth } from './helpers/test-app.js';
+import type { LocationRepository } from '../src/repositories/location.repository.js';
+import { buildTestApp, buildTestAppWithRepository, injectWithAuth } from './helpers/test-app.js';
 
 describe('Restaurant Finder API', () => {
   it('returns 401 for location routes without a token', async () => {
@@ -88,6 +89,49 @@ describe('Restaurant Finder API', () => {
       type: 'Restaurant',
       coordinates: 'x=8,y=8',
     });
+
+    await app.close();
+  });
+
+  it('returns 404 with ErrorResponse when location is missing', async () => {
+    const app = await buildTestApp();
+    await app.ready();
+
+    const response = await injectWithAuth(app, {
+      method: 'GET',
+      url: '/locations/51e1545c-8b65-4d83-82f9-7fcad4a23199',
+    });
+
+    expect(response.statusCode).toBe(404);
+    expect(response.json()).toEqual({ message: 'Location not found' });
+
+    await app.close();
+  });
+
+  it('returns 500 with ErrorResponse when the repository throws', async () => {
+    const failingRepository = {
+      refreshMaxRadius: async () => 1,
+      findById: async () => {
+        throw new Error('database unavailable');
+      },
+      searchVisible: async () => {
+        throw new Error('database unavailable');
+      },
+      upsert: async () => {
+        throw new Error('database unavailable');
+      },
+    } as unknown as LocationRepository;
+
+    const app = await buildTestAppWithRepository(failingRepository);
+    await app.ready();
+
+    const response = await injectWithAuth(app, {
+      method: 'GET',
+      url: '/locations/51e1545c-8b65-4d83-82f9-7fcad4a23111',
+    });
+
+    expect(response.statusCode).toBe(500);
+    expect(response.json()).toEqual({ message: 'Internal Server Error' });
 
     await app.close();
   });
