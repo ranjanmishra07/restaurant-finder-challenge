@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # ---- Build stage: compile TypeScript to dist/ ----
-FROM node:22-alpine AS builder
+FROM node:24-alpine AS builder
 WORKDIR /app
 
 # Install all dependencies (including dev) for the build.
@@ -18,7 +18,7 @@ RUN npm run build
 RUN cp -r src/db/migrations dist/db/migrations
 
 # ---- Production stage: lean runtime image ----
-FROM node:22-alpine AS production
+FROM node:24-alpine AS production
 WORKDIR /app
 
 ENV NODE_ENV=production

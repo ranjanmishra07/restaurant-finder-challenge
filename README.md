@@ -23,7 +23,7 @@ Search SQL lives in the repository (B-tree-indexed bbox prune + exact radius fil
 
 **Manual setup**
 
-- Node.js 20+ (see `.nvmrc`)
+- Node.js 24+ LTS (Krypton — see `.nvmrc`)
 - npm
 - PostgreSQL 16+ running locally with a database you can connect to (create a user and database using whatever credentials you prefer)
 
