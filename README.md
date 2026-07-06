@@ -160,7 +160,7 @@ Integration tests need a `.env` with your `DATABASE_URL` and migrations applied 
 
 ## Technical Rationale
 
-**PostgreSQL with B-tree indexes on `x` and `y`** — The search first narrows things down to a small box around the user using these two indexes, instead of scanning every row. Postgres combines both indexes to find candidates quickly (~O(log N + k)) rather than checking the whole table (O(N)). We started with a GiST/spatial index, but since the query filters on plain `x`/`y` columns the planner never used it, so we removed it and left notes in the migration on how to bring it back if we ever switch to true spatial queries. Data lives in the database, so it survives restarts and is shared by every running copy of the API.
+**PostgreSQL with B-tree indexes on `x` and `y`** — The search first narrows things down to a small box around the user using these two indexes, instead of scanning every row. Postgres combines both indexes to find candidates quickly (~O(log N + k)) rather than checking the whole table (O(N)). We can also modify the implentation going ahead and use  GiST/spatial index ,left notes in the migration on how to bring it up if we ever switch to true spatial queries. Data lives in the database, so it survives restarts and is shared by every running copy of the API.
 
 **Thin service layer** — The heavy lifting (measuring distance and sorting nearest-first) is done by the database in SQL. The service just translates the rows into the shape the API returns.
 
